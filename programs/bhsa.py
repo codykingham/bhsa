@@ -174,76 +174,24 @@ def _outLink(text, href, title=None):
 
 
 class Bhsa(object):
+
     def __init__(
-        self, repoBase, repoRel, name,
-        version='c', locations=[''], modules=[''],
+        self, tf_api, tf_obj, version=''
     ):
-        repoBase = os.path.expanduser(repoBase)
-        repo = f'{repoBase}/{repoRel}'
-        self.repo = repo
-        self.version = version
-        self.corpus = f'{repo}/tf/{version}'
-        TF = Fabric(
-            locations=[self.corpus] + list(locations),
-            modules=[''] + list(modules),
-            silent=True,
-        )
-        api = TF.load('', silent=True)
-        TF.load(
-            '''
-            sp gloss
-            function typ rela
-            number label book
-        ''',
+
+        already_loaded = tf_api.Fall()
+        to_load = ['sp', 'gloss', 'function', 'typ', 'rela',
+                   'number', 'label', 'book']
+        must_load = [feat for feat in to_load if feat not in already_loaded]       
+
+        tf_obj.load(
+            ' '.join(must_load),
             add=True,
             silent=True
         )
-        self.TF = TF
-        self.api = api
-        self.cwd = os.getcwd()
-        cwdPat = re.compile(f'^.*/github/([^/]+)/([^/]+)((?:/.+)?)$', re.I)
-        cwdRel = cwdPat.findall(self.cwd)
-        if cwdRel:
-            (thisOrg, thisRepo, thisPath) = cwdRel[0]
-        else:
-            cwdRel = None
-        onlineTail = (
-            f'{thisOrg}/{thisRepo}'
-            f'/blob/master{thisPath}/{name}.ipynb'
-        )
-        nbLink = (
-            None
-            if name is None or cwdRel is None else f'{URL_NB}/{onlineTail}'
-        )
-        ghLink = (
-            None
-            if name is None or cwdRel is None else f'{URL_GH}/{onlineTail}'
-        )
-        docLink = f'https://etcbc.github.io/bhsa'
-        dataLink = _outLink(CORPUS, docLink, '{provenance of this corpus}')
-        featureLink = _outLink(
-            'Feature docs',
-            f'{docLink}/features/hebrew/{self.version}/0_home.html',
-            '{CORPUS} feature documentation'
-        )
-        bhsaLink = _outLink(
-            'BHSA API', f'{docLink}/api.html', 'BHSA API documentation'
-        )
-        tfLink = _outLink(
-            'Text-Fabric API',
-            'https://github.com/Dans-labs/text-fabric/wiki/api',
-            'text-fabric-api'
-        )
-        _dm(f'**Documentation:** {dataLink} {featureLink} {bhsaLink} {tfLink}')
-        if nbLink:
-            _dm(
-                f'''
-This notebook online:
-{_outLink('NBViewer', nbLink)}
-{_outLink('GitHub', ghLink)}
-'''
-            )
-        self._loadCSS()
+        self.TF = tf_obj
+        self.api = tf_api
+        self.version = version
 
     def shbLink(self, n, text=None):
         api = self.api
